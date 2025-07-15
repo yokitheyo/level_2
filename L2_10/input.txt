@@ -1,0 +1,6 @@
+apple	100	Feb
+banana	50	Jan
+cherry	200	Mar
+apple	100	Jan
+banana	10	Feb
+cherry	300	Jan
