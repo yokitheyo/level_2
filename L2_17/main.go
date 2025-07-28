@@ -8,24 +8,24 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strings"
+	"syscall"
 	"time"
 )
 
 func main() {
-	// Parse command-line flags
 	timeout := flag.Duration("timeout", 10*time.Second, "connection timeout")
 	flag.Parse()
 
-	// Check for required arguments (host and port)
 	if len(flag.Args()) < 2 {
 		fmt.Fprintf(os.Stderr, "Usage: %s [--timeout=<duration>] <host> <port>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Commands: \\quit or \\exit to close connection, Ctrl+C to interrupt\n")
 		os.Exit(1)
 	}
 	host := flag.Args()[0]
 	port := flag.Args()[1]
 	addr := net.JoinHostPort(host, port)
 
-	// Establish TCP connection with timeout
 	conn, err := net.DialTimeout("tcp", addr, *timeout)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to connect to %s: %v\n", addr, err)
@@ -34,12 +34,10 @@ func main() {
 	defer conn.Close()
 	fmt.Printf("Connected to %s\n", addr)
 
-	// Channel to signal connection closure
 	done := make(chan struct{})
 
-	// Handle Ctrl+C gracefully
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-sigChan
 		fmt.Println("\nReceived interrupt, closing connection...")
@@ -47,18 +45,29 @@ func main() {
 		close(done)
 	}()
 
-	// Start goroutines for concurrent I/O
 	go readFromConn(conn, done)
 	go writeToConn(conn, done)
 
-	// Wait for done signal
 	<-done
 }
 
 func readFromConn(conn net.Conn, done chan struct{}) {
+	defer func() {
+		select {
+		case <-done:
+		default:
+			close(done)
+		}
+	}()
+
 	reader := bufio.NewReader(conn)
 	for {
-		// Read until newline or EOF
+		select {
+		case <-done:
+			return
+		default:
+		}
+
 		line, err := reader.ReadString('\n')
 		if err != nil {
 			if err != io.EOF {
@@ -66,8 +75,6 @@ func readFromConn(conn net.Conn, done chan struct{}) {
 			} else {
 				fmt.Println("Connection closed by server")
 			}
-			conn.Close()
-			close(done)
 			return
 		}
 		fmt.Print(line)
@@ -75,9 +82,22 @@ func readFromConn(conn net.Conn, done chan struct{}) {
 }
 
 func writeToConn(conn net.Conn, done chan struct{}) {
+	defer func() {
+		select {
+		case <-done:
+		default:
+			close(done)
+		}
+	}()
+
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		// Read user input from STDIN
+		select {
+		case <-done:
+			return
+		default:
+		}
+
 		line, err := reader.ReadString('\n')
 		if err != nil {
 			if err == io.EOF {
@@ -85,16 +105,18 @@ func writeToConn(conn net.Conn, done chan struct{}) {
 			} else {
 				fmt.Fprintf(os.Stderr, "Error reading from stdin: %v\n", err)
 			}
-			conn.Close()
-			close(done)
 			return
 		}
-		// Write to connection
+
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "\\quit" || trimmed == "\\exit" {
+			fmt.Println("Closing connection...")
+			return
+		}
+
 		_, err = conn.Write([]byte(line))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error writing to connection: %v\n", err)
-			conn.Close()
-			close(done)
 			return
 		}
 	}
