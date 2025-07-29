@@ -71,37 +71,31 @@ func (d *Downloader) processJob(job DownloadJob) {
 		return
 	}
 
-	// Проверка посещенных URL
 	if _, loaded := d.visited.LoadOrStore(job.URL, true); loaded {
 		return
 	}
 
-	// Определение пути сохранения
 	filePath, err := urlToFilePath(d.baseDir, job.URL)
 	if err != nil {
-		log.Printf("Ошибка пути: %s", job.URL)
+		log.Printf("path error: %s", job.URL)
 		return
 	}
 
-	// Создание директорий
 	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
-		log.Printf("Ошибка создания директории: %v", err)
+		log.Printf("error make dir: %v", err)
 		return
 	}
 
-	// Загрузка контента
 	content, contentType, err := d.fetchContent(job.URL)
 	if err != nil {
-		log.Printf("Ошибка загрузки %s: %v", job.URL, err)
+		log.Printf("loading error %s: %v", job.URL, err)
 		return
 	}
 
-	// Обработка HTML
 	if strings.Contains(contentType, "text/html") {
 		modifiedContent, links := processHTML(content, job.URL, d.baseDir, filePath)
 		content = modifiedContent
 
-		// Добавление новых задач
 		for _, link := range links {
 			d.wg.Add(1)
 			go func(l string) {
@@ -113,9 +107,8 @@ func (d *Downloader) processJob(job DownloadJob) {
 		}
 	}
 
-	// Сохранение файла
 	if err := os.WriteFile(filePath, content, 0644); err != nil {
-		log.Printf("Ошибка записи %s: %v", filePath, err)
+		log.Printf("write error%s: %v", filePath, err)
 	}
 }
 
@@ -131,7 +124,7 @@ func (d *Downloader) fetchContent(url string) ([]byte, string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, "", fmt.Errorf("статус %d", resp.StatusCode)
+		return nil, "", fmt.Errorf("status %d", resp.StatusCode)
 	}
 
 	content, err := io.ReadAll(resp.Body)

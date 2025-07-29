@@ -10,13 +10,13 @@ import (
 )
 
 func main() {
-	url := flag.String("url", "", "URL для загрузки")
-	depth := flag.Int("depth", 0, "Глубина рекурсии")
-	workers := flag.Int("workers", 5, "Число параллельных загрузчиков")
+	url := flag.String("url", "", "URL for download")
+	depth := flag.Int("depth", 0, "recursion depth")
+	workers := flag.Int("workers", 5, "workers count")
 	flag.Parse()
 
 	if *url == "" {
-		fmt.Println("Необходимо указать URL")
+		fmt.Println("URL required")
 		os.Exit(1)
 	}
 
@@ -24,7 +24,7 @@ func main() {
 	dl := wget.NewDownloader(*url, *depth, *workers, baseDir)
 	err := dl.Start()
 	if err != nil {
-		fmt.Printf("Ошибка: %v\n", err)
+		fmt.Printf("ERROR: %v\n", err)
 		os.Exit(1)
 	}
 }

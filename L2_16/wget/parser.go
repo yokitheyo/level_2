@@ -8,7 +8,6 @@ import (
 	"golang.org/x/net/html"
 )
 
-// Извлекает и заменяет ссылки в HTML
 func processHTML(content []byte, baseURL, baseDir, currentPath string) ([]byte, []string) {
 	var links []string
 	doc, _ := html.Parse(bytes.NewReader(content))
@@ -29,7 +28,6 @@ func processHTML(content []byte, baseURL, baseDir, currentPath string) ([]byte, 
 	return buf.Bytes(), links
 }
 
-// Обрабатывает HTML-тег
 func processNode(n *html.Node, links *[]string, baseURL, baseDir, currentPath string) {
 	attrs := map[string]string{
 		"a":      "href",
@@ -61,7 +59,6 @@ func processNode(n *html.Node, links *[]string, baseURL, baseDir, currentPath st
 	}
 }
 
-// Преобразует относительный URL в абсолютный
 func resolveURL(baseURL, target string) string {
 	base, _ := url.Parse(baseURL)
 	rel, _ := url.Parse(target)

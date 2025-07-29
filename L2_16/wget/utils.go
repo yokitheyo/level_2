@@ -6,7 +6,6 @@ import (
 	"strings"
 )
 
-// Преобразует URL в локальный путь
 func urlToFilePath(baseDir, rawURL string) (string, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
@@ -20,12 +19,10 @@ func urlToFilePath(baseDir, rawURL string) (string, error) {
 		path += "index.html"
 	}
 
-	// Формируем путь: baseDir + host + path
 	fullPath := filepath.Join(baseDir, u.Host, filepath.Clean(path))
 	return filepath.Clean(fullPath), nil
 }
 
-// Проверяет, принадлежит ли URL тому же домену
 func isSameDomain(baseURL, targetURL string) bool {
 	base, _ := url.Parse(baseURL)
 	target, _ := url.Parse(targetURL)
