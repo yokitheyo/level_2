@@ -140,7 +140,6 @@ func parseRequest(r *http.Request, v interface{}) error {
 		return err
 	}
 
-	// for form-urlencoded
 	if idStr := r.FormValue("id"); idStr != "" {
 		if id, err := strconv.Atoi(idStr); err == nil {
 			v.(*eventRequest).ID = id
